@@ -1,0 +1,464 @@
+---
+title: "GAM 101"
+author: <span style="color:black">François Rousseu</span>
+date: <span style="color:black">`r Sys.Date()`</span>
+output:
+  html_document:
+    depth: 4
+    fig_height: 6
+    fig_width: 8
+    code_folding: hide
+    number_sections: yes
+    toc: yes
+    toc_depth: 5
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+---
+
+<script>
+    $(document).ready(function() {
+      $items = $('div#TOC li');
+      $items.each(function(idx) {
+        num_ul = $(this).parentsUntil('#TOC').length;
+        $(this).css({'text-indent': num_ul * 10, 'padding-left': 0, 'padding-bottom': 0, 'padding-top': 0});
+      });
+    });
+</script>
+
+
+<style>
+
+div {
+    background-color: #EEEEEE!important;
+}
+
+pre.r {
+    background-color: #FFFFFF!important;
+    border-color: #FFFFFF!important;
+    font-size: 12pt;
+}
+
+pre code {
+  font-size: 12pt;
+}
+
+body {
+  font-size: 12pt;
+}
+
+.main-container {
+    max-width: 1200px !important;
+}
+
+#TOC {
+  font-size: 10pt;
+  border-color: white;
+}
+
+.list-group-item.active:focus{
+    z-index: 2;
+    color: darkgreen;
+    background-color: #CCCCCC;
+    border-color: red;
+    font-weight: bolder;
+    font-color: red;
+}
+
+.list-group-item.active:hover {
+    z-index: 2;
+    color: darkgreen;
+    background-color: #EEEEEE;
+    border-color: red;
+    font-weight: bolder;
+    font-color: red;
+}
+
+.list-group-item.active{
+    z-index: 2;
+    color: darkgreen;
+    background-color: #EEEEEE;
+    border-color: red;
+    font-weight: bolder;
+    font-color: red;
+}
+
+h1.title {
+  margin-top: 120px;
+  font-size: 50px;
+  color: DarkRed;
+  font-weight: bold;
+}
+h1 {
+  padding-top: 10px;
+  font-size: 42px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+h2 {
+  padding-top: 10px;
+  font-size: 36px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+
+h3 {
+  padding-top: 10px;
+  font-size: 32px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+h4 {
+  font-size: 28px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+h5 {
+  font-size: 26px;
+  color: DarkGreen;
+  font-weight: bold;
+}
+
+</style>
+
+
+```{r setup, include=TRUE, cache=FALSE, echo=FALSE, message=FALSE, eval=TRUE}
+
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, comment="##", message = FALSE, warning = FALSE, tidy = TRUE, eval=TRUE, out.width = "70%", collapse=TRUE, fig.align="center")
+
+```
+
+
+
+# Motivation
+
+GAMs are useful when the type of relations between a response variable and explanatory variables are complex or nonlinear. 
+
+
+- The relation between the explanatory variables and the response variable is described by a smooth pattern that can be nonlinear
+
+- Several smoothed relations can be added to estimate the response
+
+# An example
+
+Suppose we have the following (simulated) variables and we which to explain or predict variations in $y$ using *x*. The relation between *x* and *y* certainly can not be explained using a linear model.
+
+First, let's simulate the data.
+```{r}
+
+library(mgcv)
+
+set.seed(123) # make the example reproducible
+n<-200 # number of points
+x<-sort(runif(n,0,10)) 
+
+f<-function(i){ # build a complex function
+  cos(i)+exp(0.2*i)
+}
+y<-f(x)+rnorm(length(x),0,0.5) # add some random variation
+d<-data.frame(x,y) # build a data.frame
+
+```
+
+Here is what the data looks like. The line is the true generating function.
+```{r}
+
+plot(y~x,data=d,xlab="x",ylab="y",col="grey60")
+v<-seq(min(d$x),max(d$x),by=0.1)
+lines(v,f(v),col="grey60",lwd=2) 
+
+```
+
+Obviously, a linear regression does not make sense as a model.
+```{r}
+
+plot(y~x,data=d,xlab="x",ylab="y",col="grey60")
+lines(v,f(v),col="grey60",lwd=2) ## generating function (TRUE function)
+m<-lm(y~x,data=d)
+p<-predict(m,data.frame(x=v))
+lines(v,p,lwd=1)
+
+```
+
+This is obvious when checking linear model assumptions.
+```{r}
+par(mfrow=c(2,2))
+plot(m)
+
+```
+
+We could also decide to fit polynomial regressions
+```{r}
+
+plot(y~x,data=d,xlab="x",ylab="y",col="grey60")
+lines(v,f(v),col="grey60",lwd=2) ## generating function (TRUE function)
+
+m2<-lm(y~poly(x,2),data=d)
+p<-predict(m2,data.frame(x=v))
+lines(v,p,col=2)
+
+m3<-lm(y~poly(x,3),data=d)
+p<-predict(m3,data.frame(x=v))
+lines(v,p,col=3)
+
+m4<-lm(y~poly(x,4),data=d)
+p<-predict(m4,data.frame(x=v))
+lines(v,p,col=4)
+
+legend("topleft",lwd=1,cex=2,col=2:4,legend=c(expression(x^2),expression(x^3),expression(x^4)),bty="n")
+
+```
+
+Now, let's use a GAM model with the `gam` function from package **mgcv** and a smooth over $x$ using the function `s`. 
+```{r}
+g<-gam(y~s(x),data=d) # a gam
+```
+
+We can compare the fit of the GAM model to the data generating function. The fit is quite close to the true generating function.
+```{r}
+plot(y~x,data=d,xlab="x",ylab="y",col="grey60")
+lines(v,f(v),col="grey60",lwd=2) ## generating function (TRUE function)
+
+p<-predict(g,data.frame(x=v))
+lines(v,p,col="black")
+```
+
+
+```{r}
+plot(g,residuals=TRUE,pch=1)
+```
+
+# Under the hood
+
+(but slightly...)
+
+## Model formulation
+
+**General linear model**
+
+A general linear model is a linear combination of explanatory variables.
+
+$$y \sim \mathcal{N}(\mu, \sigma^2)$$
+
+$$\mu=\beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_n X_n$$
+
+**Generalized linear model**
+
+A generalized linear model is a linear combination of explanatory variables, but there is a *link* function $\mathcal{g}$ that relates the response to the linear predictor and the error follows a distribution from the exponential family.
+
+$$y \sim \mathcal{ExpFam}(\mu, ...)$$
+
+$$\mathcal{g}(\mu)=\beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_n X_n$$
+
+**Generalized additive models**
+
+A generalized additive model has the same component as a GLM, but the linear predictor is made of non-linear functions (*smooths*) of the explanatory variables.
+
+$$y \sim \mathcal{ExpFam}(\mu,...)$$
+
+$$\mathcal{g}(\mu)=\beta_0 + \mathcal{f_1} (X_1) + \mathcal{f_2} (X_2) + ... + \mathcal{f_n}(X_n)$$
+
+There are many ways to construct these functions. Each smooth function $\mathcal{f}$ has a basis of a given dimension $\mathcal{q}$ and for a given $X$ can be written as:
+
+$$\mathcal{f} (X)=\sum_{i=1}^{\mathcal{q}} \mathcal{b_i}(X)\beta_i$$
+
+where the $\beta_i$ are arbitrary functions. An example for a basis could be a simple cubic polynomial.
+
+$$\mathcal{f} (X)=\beta_1 + \beta_2 X + \beta_3 X^2 + \beta_4 X^3$$
+
+## GAM construction
+
+To have a better understanding of what GAMs represent, let's decompose the data we studied in the example into sections and fit cubic polynomial to each.
+
+```{r}
+
+plot(y~x,data=d,xlab="x",ylab="y",col="grey60")
+knots<-seq(min(d$x),max(d$x),length.out=4)
+b<-cut(d$x,breaks=knots)
+abline(v=knots,lty=2,col="grey60")
+
+d$b<-b
+
+l<-split(d,d$b)
+
+invisible(lapply(l,function(i){
+  m<-lm(y~poly(x,3),data=i)  
+  v<-seq(min(i$x),max(i$x),by=0.1)
+  p<-predict(m,data.frame(x=v))
+  lines(v,p)
+}))
+
+```
+
+
+We now have different pieces fitted to each section. But the pieces need to be smoothly connected together to form **splines**. Without entering into details, these pieces are connected using constraints on first- and second-order derivatives to ensure smooth connections. These connections are made at **knots**. Thre are several ways to determine the number of knots and it may also depend on the type of splines used.
+
+**Spline**:
+
+<!-- <p style="background-color:black"><span style="color:white; background-color:black">**Spline**</span></p> -->
+
+Now, let's go back to back to our gam model.
+```{r}
+
+mm <- predict(g, type = "lpmatrix")
+
+matplot(d$x,mm[,-1],type="l",ylab="Basis functions")
+nn <- ncol(mm[,-1])
+legend("top",horiz=TRUE,colnames(mm[,-1]),cex=0.8,col=seq_len(nn),lty=seq_len(nn),inset=c(0,-0.1),xpd=TRUE,bty="n")
+
+lines(d$x, rowSums(mm[,-1]),lty = 2,col="red")
+
+plot(y~x,data=d)
+lines(d$x,mm %*% g$coefficients)
+
+```
+
+
+```{r}
+
+plot(y~x,data=d)
+lines(d$x,mm%*%g$coefficients)
+
+```
+
+
+One might ask, why use piecewise polynomial instead of a high degree polynomial fitted to the whole data? High degree polynomials can lead to unwanted oscillations, notably at the edges of predictions. For example, see [Runge's phenomenon](https://en.wikipedia.org/wiki/Runge%27s_phenomenon).  
+
+## GCV
+
+GCV stands for **G**eneralized **C**ross-**V**alidation (thus the name m**gcv**). This is the procedure that determines the optimal amount of smoothing and it is done automatically by the mgcv algorithms. 
+
+Generally speaking, cross-validation is a model validation technique for assessing how well a model will perform on an independent dataset. For example, this can be done by running a model on a random partition of the data (say 90%, the training data) and then predict the rest of the data (10%, the validation data) and calcute the prediction errors. There are several different ways of doing this. Another is to run the model by removing a single observation at a time and then try to predict that observation with the model (*leave-one-out cross-validation*). Intuitively, GCV is similar, but it is done in a more computationally efficient way.
+
+Thus, one important advantage of using gam and mgcv is that the optimal level of smoothness is automatically determined. Beware that the level of smoothness determined by this method may not be appropriate when the is collinearity, non-independence or for small sample sizes.
+
+
+
+## EDF
+
+## gam vs. mgcv
+
+# In practice
+
+## The `gam` function
+
+## Set up a model
+
+## Interpretation
+
+## Smooths
+
+`s()`
+
+Used for univariate smooths, isotropic smooths of several variables (with variables on the same scale, e.g., XY coordinates), simple random effects
+
+`te()`
+
+Tensor product smooths for several variables (interactions)
+
+`ti()`
+
+Tensor product smooths with marginal smooths excluded (and lower order interaction terms)
+
+## Plotting
+
+## Model checking
+
+<!--#### LOESS-->
+
+<!--## Splines-->
+
+[Splines](https://en.wikipedia.org/wiki/Spline_(mathematics)) are piecewise polynomial curves.
+
+The locations of the joins are called knots.
+
+The curves are joined smoothly at knots.
+
+Natural splines are constrained to have zero second derivatives at the joins.
+
+B-Splines are unconstrained in terms of derivative at the joins (but must join smoothly)
+
+
+
+**Cubis regression spline** (*cr*)
+
+- use knots
+- single variable
+
+**Cyclic cubic regression spline** (*cc*) 
+
+- for cyclic (seasonal) response
+
+**Thin plate spline** (*tp*)
+
+- do not use knots
+- can be used for interactions
+
+**Thin plate spline with shrinkage** (*ts*)
+
+- can be used for variable selection
+
+**Cubic regression spline with shrinkage** (*cs*)
+
+- can be used for variable selection
+
+**Tensor product** (*te*)
+
+- used for multiple interacting variables
+
+
+Smoothing splines
+
+Regression splines
+
+Interactions
+
+Bases
+
+Plotting
+
+## Tools
+
+
+
+See [itsadug](https://cran.r-project.org/web/packages/itsadug/vignettes/inspect.html)
+
+## ---Challenge1---
+
+# Model selection
+
+# Random effects
+
+# Extensions
+
+## Models for large data
+
+bam instead of gam
+
+## Temporal autocorrelation
+
+## Spatial autocorrelation
+
+Spatial models can be also be formulated for discrete spatial structures through *Markov Random Field* smooths. For continuous spatial data, coordinates can also be used within predictors.
+
+## GAMLSS
+
+[GAMLSS](http://www.gamlss.com/) (Generalized Additive Models for **L**ocation, **S**cale and **S**hape ) are an extension to GAMS where all parameters of an assumed distribution for the response variable can be modeled as an additive model of the explanatory variables. This means for example that in addition to the modeling of the mean response, the variance can also be modeled. They also allow for the use of distributions beyond the exponentail family.
+
+# ---Challenge 2---
+
+# Links
+
+## Books
+
+[Introduction to generalized additive models by S. Wood]()
+
+[Zuur]()
+
+## Blogs
+
+[From The Bottom of the Heap](https://m-clark.github.io/docs/GAM.html)
+
+
+
+
