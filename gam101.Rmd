@@ -124,6 +124,8 @@ h5 {
 
 ```{r setup, include=TRUE, cache=FALSE, echo=FALSE, message=FALSE, eval=TRUE}
 
+library(mgcv)
+
 knitr::opts_chunk$set(echo = TRUE, cache=TRUE, comment="##", message = FALSE, warning = FALSE, tidy = TRUE, eval=TRUE, out.width = "70%", collapse=TRUE, fig.align="center")
 
 ```
@@ -147,8 +149,6 @@ Suppose we have the following (simulated) variables and we which to explain or p
 
 First, let's simulate the data.
 ```{r}
-
-library(mgcv)
 
 set.seed(123) # make the example reproducible
 n<-200 # number of points
@@ -213,7 +213,9 @@ legend("topleft",lwd=1,cex=2,col=2:4,legend=c(expression(x^2),expression(x^3),ex
 
 Now, let's use a GAM model with the `gam` function from package [**mgcv**](https://people.maths.bris.ac.uk/~sw15190/mgcv/) and a smooth over $x$ using the function `s`. 
 ```{r}
-g<-gam(y~s(x),data=d) # a gam
+library(mgcv)
+
+g<-gam(y~s(x,bs="cr"),data=d) # a gam
 ```
 
 We can compare the fit of the GAM model to the data generating function. The fit is quite close to the true generating function.
@@ -225,10 +227,6 @@ p<-predict(g,data.frame(x=v))
 lines(v,p,col="black")
 ```
 
-
-```{r}
-plot(g,residuals=TRUE,pch=1)
-```
 
 # Under the Hood
 
@@ -272,7 +270,7 @@ $$\mathcal{f} (X)=\beta_1 + \beta_2 X + \beta_3 X^2 + \beta_4 X^3$$
 
 ## GAM construction
 
-To have a better understanding of what GAMs represent, let's decompose the data we studied in the example into sections and fit cubic polynomial to each.
+To have a better understanding of what a GAM may represent, let's decompose the data we studied in the example into sections and fit cubic polynomial to each.
 
 ```{r}
 
@@ -297,39 +295,22 @@ invisible(lapply(l,function(i){
 
 We now have different pieces fitted to each section. But the pieces need to be smoothly connected together to form [splines](https://en.wikipedia.org/wiki/Spline_(mathematics)) which are piecewise polynomial curves. Without entering into details, these pieces are connected using constraints on first- and second-order derivatives to ensure smooth connections. These connections are made at **knots**. There are several ways to determine the number of knots and it may also depend on the type of splines used.
 
-**Spline**:
-
-<!-- <p style="background-color:black"><span style="color:white; background-color:black">**Spline**</span></p> -->
-
 Now, let's go back to back to our gam model.
 ```{r}
-
 mm <- predict(g, type = "lpmatrix")
-
 matplot(d$x,mm[,-1],type="l",ylab="Basis functions")
 nn <- ncol(mm[,-1])
 legend("top",horiz=TRUE,colnames(mm[,-1]),cex=0.8,col=seq_len(nn),lty=seq_len(nn),inset=c(0,-0.1),xpd=TRUE,bty="n")
-
-lines(d$x, rowSums(mm[,-1]),lty = 2,col="red")
-
-plot(y~x,data=d)
-lines(d$x,mm %*% g$coefficients)
-
 ```
 
 
 ```{r}
-
 plot(y~x,data=d)
 lines(d$x,mm%*%g$coefficients)
-
 ```
 
 
-One might ask, why use piecewise polynomial instead of a high degree polynomial fitted to the whole data? High degree polynomials can lead to unwanted oscillations, notably at the edges of predictions. For example, see [Runge's phenomenon](https://en.wikipedia.org/wiki/Runge%27s_phenomenon).  
-
-
-<!-- ## gam vs. mgcv -->
+<!-- One might ask, why use piecewise polynomial instead of a high degree polynomial fitted to the whole data? High degree polynomials can lead to unwanted oscillations, notably at the edges of predictions. For example, see [Runge's phenomenon](https://en.wikipedia.org/wiki/Runge%27s_phenomenon).   -->
 
 # In Practice
 
@@ -337,11 +318,15 @@ One might ask, why use piecewise polynomial instead of a high degree polynomial 
 
 As taken from the package help pages, mgcv is a *Mixed GAM Computation Vehicle with GCV/AIC/REML smoothness estimation and GAMMs by REML/PQL*. The package name **mgcv** stands for **M**ixed **G**AM **C**omputation **V**ehicle.
 
+<br>
+
 There are a lot of sources of information for using GAMs with mgcv. A list of useful links is given at the end of this document. 
 
 Contrary to many packages, the help files for the mgcv package are extremely detailed (even if a bit complex) and one should not underestimate the amount of information contained in the help files. They also contain info on special introductory and more advanced topics. A couple of examples.
 
 `?mgcv` general info on the package
+
+`?gam` general info on the function
 
 `?gam.models`  how to specify a gam model
 
@@ -377,15 +362,17 @@ plot(g,residuals=TRUE,pch=1)
 ```
 
 
-```{r}
-par(mfrow=c(2,2))
-gam.check(g)
-```
 
+
+Several methods (functions) are available to deal with gam objects: `print`, `summary`,`anova`, `plot`, `predict`, `residuals`. 
 
 ## Set up a model
 
+See `?family.mgcv` for explanations and the list of families available in mgcv.
+
 ## Smooths
+
+The list of available smooth terms is given in `?smooth.terms`
 
 `s()`
 
@@ -411,8 +398,20 @@ Here is a list of some important arguments to the smooth function `s` or `te`
 
 ## Plotting
 
+`plot`
+
+`vis.gam`
+
+`plot.smooth`
+
+`visreg`
+
+`predict`
+
 
 ## Interpretation
+
+
 
 ### EDF
 
@@ -420,7 +419,12 @@ EDF stands for **E**stimated **D**egrees of **F**reedom. Without going into deta
 
 ## Model checking
 
-`gam.check`
+
+```{r,eval=FALSE,echo=FALSE}
+par(mfrow=c(2,2))
+gam.check(g)
+```
+
 
 <!--#### LOESS-->
 
@@ -459,29 +463,23 @@ EDF stands for **E**stimated **D**egrees of **F**reedom. Without going into deta
 - used for multiple interacting variables
 
 
-Smoothing splines
-
-Regression splines
-
-Interactions
-
-Bases
-
-Plotting
-
-## Tools
-
+## Interactions
 
 
 ## ---Challenge1---
 
-
 ```{r, eval=FALSE, echo=FALSE}
 
 dat <- gamSim(5,n=200,dist="normal",scale=0.5, verbose=FALSE)
-g<-gam(y~s(x1)+s(x2)+s(x3,bs="tp"),data=dat)
+g<-gam(y~s(x1,by=x0)+s(x2,by=x0)+s(x3,by=x0),data=dat)
 
-plot(g)
+dat <- gamSim(5,n=200,dist="normal",scale=0.5, verbose=FALSE)
+
+par(mfrow=c(2,2))
+plot(y~x0+x1+x2+x3,data=dat)
+
+g<-gam(y~s(x1)+s(x2)+s(x3),data=dat)
+plot(g,residuals=TRUE,pch=1)
 summary(g)
 
 ```
@@ -491,7 +489,47 @@ summary(g)
 ```{r, eval=FALSE, echo=FALSE}
 
 library(rclimateca)
-library(mgcv)
+
+ec_climate_search_locations("quebec", timeframe = "daily", year = 2015)
+
+d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892"), timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
+d$jul<-as.numeric(format(d$date,"%j"))
+d$temp<-d$mean_temp_c
+plot(d$jul,d$temp)
+
+g<-gam(temp~s(jul),data=d)
+plot(g,residuals=TRUE,pch=1,shade=TRUE,rug=FALSE,shift=mean(d$temp))
+
+plot(temp~jul,data=d)
+v<-seq(1,365,by=0.1)
+p<-predict(g,data.frame(jul=v))
+lines(v,p)
+
+ec_climate_search_locations("vancouver", timeframe = "daily", year = 2015)
+
+d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892","VANCOUVER INTL A BC 51442"), timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
+d$jul<-as.numeric(format(d$date,"%j"))
+d$temp<-d$mean_temp_c
+d$location<-as.factor(d$location)
+d<-d[!is.na(d$temp),]
+plot(d$jul,d$temp)
+
+g<-gam(temp~s(jul,by=location),data=d)
+plot(g,residuals=TRUE,pch=1,shade=TRUE,rug=FALSE)
+
+plot(temp~jul,data=d)
+v<-seq(1,365,by=0.1)
+p<-predict(g,data.frame(jul=v))
+lines(v,p)
+
+
+
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+
+library(rclimateca)
 
 ec_climate_search_locations("quebec", timeframe = "daily", year = 2015)
 
@@ -549,17 +587,19 @@ g<-gam(temp~te(lon,lat),data=d)
 
 
 
-# Model Selection
-
-# Random Effects
+# Comparing models
 
 # Extensions
 
-## Temporal autocorrelation
+## Random Effects
+
+For more info on random effects with mgcv see `?random.effects` and the help page for `?gamm`
+
+## Temporal Autocorrelation
 
 See [itsadug](https://cran.r-project.org/web/packages/itsadug/vignettes/inspect.html)
 
-## Spatial autocorrelation
+## Spatial Autocorrelation
 
 Spatial models can be also be formulated for discrete spatial structures through *Markov Random Field* smooths. For continuous spatial data, coordinates can also be used within predictors.
 
