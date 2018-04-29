@@ -139,6 +139,8 @@ GAMs are useful when the type of relations between a response variable and expla
 
 - Several smoothed relations can be added to estimate the response
 
+We will use the package [mgcv](https://people.maths.bris.ac.uk/~sw15190/mgcv/) developed by [Simon Wood](https://people.maths.bris.ac.uk/~sw15190/)
+
 # An Example
 
 Suppose we have the following (simulated) variables and we which to explain or predict variations in $y$ using *x*. The relation between *x* and *y* certainly can not be explained using a linear model.
@@ -209,7 +211,7 @@ legend("topleft",lwd=1,cex=2,col=2:4,legend=c(expression(x^2),expression(x^3),ex
 
 ```
 
-Now, let's use a GAM model with the `gam` function from package **mgcv** and a smooth over $x$ using the function `s`. 
+Now, let's use a GAM model with the `gam` function from package [**mgcv**](https://people.maths.bris.ac.uk/~sw15190/mgcv/) and a smooth over $x$ using the function `s`. 
 ```{r}
 g<-gam(y~s(x),data=d) # a gam
 ```
@@ -262,9 +264,11 @@ There are many ways to construct these functions. Each smooth function $\mathcal
 
 $$\mathcal{f} (X)=\sum_{i=1}^{\mathcal{q}} \mathcal{b_i}(X)\beta_i$$
 
-where the $\beta_i$ are arbitrary functions. An example for a basis could be a simple cubic polynomial.
+where the $\beta_i$ are arbitrary functions. Thus, a GAM is a linear combination of smooth terms. An example for a basis could be a simple cubic polynomial.
 
 $$\mathcal{f} (X)=\beta_1 + \beta_2 X + \beta_3 X^2 + \beta_4 X^3$$
+
+
 
 ## GAM construction
 
@@ -291,7 +295,7 @@ invisible(lapply(l,function(i){
 ```
 
 
-We now have different pieces fitted to each section. But the pieces need to be smoothly connected together to form [splines](https://en.wikipedia.org/wiki/Spline_(mathematics)) are piecewise polynomial curves. Without entering into details, these pieces are connected using constraints on first- and second-order derivatives to ensure smooth connections. These connections are made at **knots**. Thre are several ways to determine the number of knots and it may also depend on the type of splines used.
+We now have different pieces fitted to each section. But the pieces need to be smoothly connected together to form [splines](https://en.wikipedia.org/wiki/Spline_(mathematics)) which are piecewise polynomial curves. Without entering into details, these pieces are connected using constraints on first- and second-order derivatives to ensure smooth connections. These connections are made at **knots**. There are several ways to determine the number of knots and it may also depend on the type of splines used.
 
 **Spline**:
 
@@ -324,25 +328,60 @@ lines(d$x,mm%*%g$coefficients)
 
 One might ask, why use piecewise polynomial instead of a high degree polynomial fitted to the whole data? High degree polynomials can lead to unwanted oscillations, notably at the edges of predictions. For example, see [Runge's phenomenon](https://en.wikipedia.org/wiki/Runge%27s_phenomenon).  
 
-## GCV
 
-GCV stands for **G**eneralized **C**ross-**V**alidation (thus the name m**gcv**). This is the procedure that determines the optimal amount of smoothing and it is done automatically by the mgcv algorithms. 
+<!-- ## gam vs. mgcv -->
+
+# In Practice
+
+## mgcv
+
+As taken from the package help pages, mgcv is a *Mixed GAM Computation Vehicle with GCV/AIC/REML smoothness estimation and GAMMs by REML/PQL*. The package name **mgcv** stands for **M**ixed **G**AM **C**omputation **V**ehicle.
+
+There are a lot of sources of information for using GAMs with mgcv. A list of useful links is given at the end of this document. 
+
+Contrary to many packages, the help files for the mgcv package are extremely detailed (even if a bit complex) and one should not underestimate the amount of information contained in the help files. They also contain info on special introductory and more advanced topics. A couple of examples.
+
+`?mgcv` general info on the package
+
+`?gam.models`  how to specify a gam model
+
+`?gam.selection`  model selection with gam models
+ 
+`?mgcv.FAQ`  frequently asked questions concerning the package
+
+
+### GCV
+
+GCV stands for **G**eneralized **C**ross-**V**alidation. This is one of the procedure that determines the optimal amount of smoothing and it is done automatically by the mgcv algorithms. 
 
 Generally speaking, cross-validation is a model validation technique for assessing how well a model will perform on an independent dataset. For example, this can be done by running a model on a random partition of the data (say 90%, the training data) and then predict the rest of the data (10%, the validation data) and calcute the prediction errors. There are several different ways of doing this. Another is to run the model by removing a single observation at a time and then try to predict that observation with the model (*leave-one-out cross-validation*). Intuitively, GCV is similar, but it is done in a more computationally efficient way.
 
 Thus, one important advantage of using gam and mgcv is that the optimal level of smoothness is automatically determined. Beware that the level of smoothness determined by this method may not be appropriate when the is collinearity, non-independence or for small sample sizes.
 
+Other methods than GCV are now available. Type `?gam.selection` for more detailed information on the different methods possible.
 
 
-## EDF
-
-EDF stands for **E**stimated **D**egrees of **F**reedom. Without going into details, it roughly represents the the level of "wiggliness" of the smooth term. 
-
-## gam vs. mgcv
-
-# In Practice
 
 ## The `gam` function
+
+```{r}
+g1<-gam(y~x,data=d)
+summary(g)
+
+```
+
+```{r}
+g2<-gam(y~s(x),data=d)
+summary(g)
+plot(g,residuals=TRUE,pch=1)
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+gam.check(g)
+```
+
 
 ## Set up a model
 
@@ -360,11 +399,28 @@ Tensor product smooths for several variables (interactions)
 
 Tensor product smooths with marginal smooths excluded (and lower order interaction terms)
 
+## Arguments
+
+Here is a list of some important arguments to the smooth function `s` or `te`
+
+`bs`: For choosing the type basis
+
+`by`: For allowing the smooths to vary according to a categorical variable
+
+`k`: The dimension of the basis used to construct the smooth term. See `?choose.k` for good advices
+
 ## Plotting
+
 
 ## Interpretation
 
+### EDF
+
+EDF stands for **E**stimated **D**egrees of **F**reedom. Without going into details, it roughly represents the level of smooth complexity required for modeling the response.
+
 ## Model checking
+
+`gam.check`
 
 <!--#### LOESS-->
 
@@ -458,6 +514,37 @@ lines(v,p)
 ```
 
 
+```{r, eval=FALSE, echo=FALSE}
+l<-as.data.frame(ec_climate_geosearch_locations("quebec QC",year = 2017,timeframe = "daily",limit = 200,province=="QUEBEC"))
+l<-l[l$latitude<47.299 & l$longitude>(-76.269),]
+s<-l
+coordinates(s)<-~longitude+latitude
+plot(s)
+
+tmap_mode("view")
+tm_shape(s)+tm_dots(col="red")+tm_layout(basemaps = c("Esri.WorldImagery", "Esri.WorldShadedRelief", "Esri.NatGeoWorldMap"))
+
+d<-as.data.frame(ec_climate_data(l$location, timeframe = "daily",start = "2017-01-01", end = "2017-01-01"))
+m<-match(d$location,l$location)
+d$lon<-l$longitude[m]
+d$lat<-l$latitude[m]
+d$elev<-l$elevation_m[m]
+d$jul<-as.numeric(format(d$date,"%j"))
+d$temp<-d$mean_temp_c
+d$year<-as.factor(d$year)
+#d<-na.omit(d[,c("jul","temp","year")])
+plot(d$jul,d$temp)
+g<-gam(temp~te(lon,lat),data=d)
+#plot(g,residuals=TRUE,pch=1)
+	plot(g,select=1, cex=3, asp=1, lwd=2, scheme=2,n2=100,too.far=-0.1,contour.col="black")
+	
+	
+	visreg2d(g,"lon","lat")
+	points(d$lon,d$lat)
+	
+		vis.gam(g,plot.type="contour",contour.col="black",ticktype="detailed",asp=1)
+	points(d$lon,d$lat)
+```
 
 
 
@@ -490,7 +577,7 @@ bam instead of gam
 
 ## Books
 
-[Generalized Additive Models, An Introduction with R](https://www.crcpress.com/Generalized-Additive-Models-An-Introduction-with-R-Second-Edition/Wood/p/book/9781498728331) by Simon Wood, author of the mgcv package
+[Generalized Additive Models, An Introduction with R](https://www.crcpress.com/Generalized-Additive-Models-An-Introduction-with-R-Second-Edition/Wood/p/book/9781498728331) by [Simon Wood](https://people.maths.bris.ac.uk/~sw15190/), author of the mgcv package
 
 ## Course
 
