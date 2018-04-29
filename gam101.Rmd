@@ -139,7 +139,7 @@ GAMs are useful when the type of relations between a response variable and expla
 
 - Several smoothed relations can be added to estimate the response
 
-# An example
+# An Example
 
 Suppose we have the following (simulated) variables and we which to explain or predict variations in $y$ using *x*. The relation between *x* and *y* certainly can not be explained using a linear model.
 
@@ -228,7 +228,7 @@ lines(v,p,col="black")
 plot(g,residuals=TRUE,pch=1)
 ```
 
-# Under the hood
+# Under the Hood
 
 (but slightly...)
 
@@ -291,7 +291,7 @@ invisible(lapply(l,function(i){
 ```
 
 
-We now have different pieces fitted to each section. But the pieces need to be smoothly connected together to form **splines**. Without entering into details, these pieces are connected using constraints on first- and second-order derivatives to ensure smooth connections. These connections are made at **knots**. Thre are several ways to determine the number of knots and it may also depend on the type of splines used.
+We now have different pieces fitted to each section. But the pieces need to be smoothly connected together to form [splines](https://en.wikipedia.org/wiki/Spline_(mathematics)) are piecewise polynomial curves. Without entering into details, these pieces are connected using constraints on first- and second-order derivatives to ensure smooth connections. These connections are made at **knots**. Thre are several ways to determine the number of knots and it may also depend on the type of splines used.
 
 **Spline**:
 
@@ -336,15 +336,15 @@ Thus, one important advantage of using gam and mgcv is that the optimal level of
 
 ## EDF
 
+EDF stands for **E**stimated **D**egrees of **F**reedom. Without going into details, it roughly represents the the level of "wiggliness" of the smooth term. 
+
 ## gam vs. mgcv
 
-# In practice
+# In Practice
 
 ## The `gam` function
 
 ## Set up a model
-
-## Interpretation
 
 ## Smooths
 
@@ -362,21 +362,17 @@ Tensor product smooths with marginal smooths excluded (and lower order interacti
 
 ## Plotting
 
+## Interpretation
+
 ## Model checking
 
 <!--#### LOESS-->
 
 <!--## Splines-->
 
-[Splines](https://en.wikipedia.org/wiki/Spline_(mathematics)) are piecewise polynomial curves.
+<!-- Natural splines are constrained to have zero second derivatives at the joins. -->
 
-The locations of the joins are called knots.
-
-The curves are joined smoothly at knots.
-
-Natural splines are constrained to have zero second derivatives at the joins.
-
-B-Splines are unconstrained in terms of derivative at the joins (but must join smoothly)
+<!-- B-Splines are unconstrained in terms of derivative at the joins (but must join smoothly) -->
 
 
 
@@ -391,7 +387,7 @@ B-Splines are unconstrained in terms of derivative at the joins (but must join s
 
 **Thin plate spline** (*tp*)
 
-- do not use knots
+- does not use regular knots
 - can be used for interactions
 
 **Thin plate spline with shrinkage** (*ts*)
@@ -421,25 +417,68 @@ Plotting
 
 
 
-See [itsadug](https://cran.r-project.org/web/packages/itsadug/vignettes/inspect.html)
-
 ## ---Challenge1---
 
-# Model selection
 
-# Random effects
+```{r, eval=FALSE, echo=FALSE}
+
+dat <- gamSim(5,n=200,dist="normal",scale=0.5, verbose=FALSE)
+g<-gam(y~s(x1)+s(x2)+s(x3,bs="tp"),data=dat)
+
+plot(g)
+summary(g)
+
+```
+
+
+
+```{r, eval=FALSE, echo=FALSE}
+
+library(rclimateca)
+library(mgcv)
+
+ec_climate_search_locations("quebec", timeframe = "daily", year = 2015)
+
+d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892"), timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
+d$jul<-as.numeric(format(d$date,"%j"))
+d$temp<-d$mean_temp_c
+plot(d$jul,d$temp)
+g<-gam(temp~s(year,k=3)+s(jul,bs="cc"),data=d)
+g<-gam(temp~s(jul),data=d)
+plot(g,residuals=FALSE,pch=1,shade=TRUE,scale=0)
+
+
+plot(temp~jul,data=d)
+v<-seq(1,365,by=0.1)
+p<-predict(g,data.frame(jul=v))
+lines(v,p)
+
+
+
+```
+
+
+
+
+
+
+# Model Selection
+
+# Random Effects
 
 # Extensions
 
-## Models for large data
-
-bam instead of gam
-
 ## Temporal autocorrelation
+
+See [itsadug](https://cran.r-project.org/web/packages/itsadug/vignettes/inspect.html)
 
 ## Spatial autocorrelation
 
 Spatial models can be also be formulated for discrete spatial structures through *Markov Random Field* smooths. For continuous spatial data, coordinates can also be used within predictors.
+
+## Models for large data
+
+bam instead of gam
 
 ## GAMLSS
 
@@ -451,13 +490,18 @@ Spatial models can be also be formulated for discrete spatial structures through
 
 ## Books
 
-[Introduction to generalized additive models by S. Wood]()
+[Generalized Additive Models, An Introduction with R](https://www.crcpress.com/Generalized-Additive-Models-An-Introduction-with-R-Second-Edition/Wood/p/book/9781498728331) by Simon Wood, author of the mgcv package
 
-[Zuur]()
+## Course
+
+[mgcv course](http://converged.yt/mgcv-workshop/)
 
 ## Blogs
 
-[From The Bottom of the Heap](https://m-clark.github.io/docs/GAM.html)
+[From The Bottom of the Heap](https://m-clark.github.io/docs/GAM.html): a blog by Gavin Simpson, a heavy user of GAM (often the answerer on CrossValidated for GAM related questions and has a lot of examples of GAM uses)
+
+[Generalized Additive Models](https://m-clark.github.io/docs/GAM.html)
+
 
 
 
