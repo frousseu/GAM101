@@ -29,6 +29,17 @@ output:
 
 <style>
 
+hr {
+    display: block;
+    height: 00px;
+    border: 0;
+    border-top: 0px solid darkgreen;
+    border-bottom: 3px solid darkgreen;
+    margin: 1em 0;
+    padding-bottom: 0px;
+    padding-top: 0px;
+}
+
 div {
     background-color: #EEEEEE!important;
 }
@@ -497,7 +508,7 @@ d$jul<-as.numeric(format(d$date,"%j"))
 d$temp<-d$mean_temp_c
 plot(d$jul,d$temp)
 
-g<-gam(temp~s(jul),data=d)
+g<-gam(temp~s(jul,bs="tp"),data=d)
 plot(g,residuals=TRUE,pch=1,shade=TRUE,rug=FALSE,shift=mean(d$temp))
 
 plot(temp~jul,data=d)
@@ -505,24 +516,26 @@ v<-seq(1,365,by=0.1)
 p<-predict(g,data.frame(jul=v))
 lines(v,p)
 
-ec_climate_search_locations("vancouver", timeframe = "daily", year = 2015)
+ec_climate_search_locations("halifax", timeframe = "daily", year = 2015)
 
-d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892","VANCOUVER INTL A BC 51442"), timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
+d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892","VANCOUVER INTL A BC 51442","TORONTO CITY ON 31688","HALIFAX INTL A NS 50620"), timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
 d$jul<-as.numeric(format(d$date,"%j"))
 d$temp<-d$mean_temp_c
 d$location<-as.factor(d$location)
 d<-d[!is.na(d$temp),]
 plot(d$jul,d$temp)
 
-g<-gam(temp~s(jul,by=location),data=d)
+g<-gam(temp~location+s(jul,by=location),data=d)
 plot(g,residuals=TRUE,pch=1,shade=TRUE,rug=FALSE)
 
 plot(temp~jul,data=d)
 v<-seq(1,365,by=0.1)
-p<-predict(g,data.frame(jul=v))
+p<-predict(g,data.frame(jul=v,location="QUEBEC/JEAN LESAGE INTL QC 26892"))
+lines(v,p)
+p<-predict(g,data.frame(jul=v,location="VANCOUVER INTL A BC 51442"))
 lines(v,p)
 
-
+visreg(g,"jul","location",overlay=TRUE)
 
 ```
 
@@ -547,8 +560,6 @@ v<-seq(1,365,by=0.1)
 p<-predict(g,data.frame(jul=v))
 lines(v,p)
 
-
-
 ```
 
 
@@ -572,16 +583,17 @@ d$temp<-d$mean_temp_c
 d$year<-as.factor(d$year)
 #d<-na.omit(d[,c("jul","temp","year")])
 plot(d$jul,d$temp)
-g<-gam(temp~te(lon,lat),data=d)
+g<-gam(temp~s(elev)+te(lon,lat),data=d)
 #plot(g,residuals=TRUE,pch=1)
-	plot(g,select=1, cex=3, asp=1, lwd=2, scheme=2,n2=100,too.far=-0.1,contour.col="black")
+plot(g,select=1, cex=3, asp=1, lwd=2, scheme=2,n2=100,too.far=-0.1,contour.col="black")
 	
 	
-	visreg2d(g,"lon","lat")
-	points(d$lon,d$lat)
+visreg2d(g,"lon","lat")
+points(d$lon,d$lat)
 	
-		vis.gam(g,plot.type="contour",contour.col="black",ticktype="detailed",asp=1)
-	points(d$lon,d$lat)
+vis.gam(g,plot.type="contour",contour.col="black",asp=1,color="topo")
+points(d$lon,d$lat)
+	
 ```
 
 
