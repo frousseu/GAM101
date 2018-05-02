@@ -8,7 +8,7 @@ output:
     fig_height: 6
     fig_width: 8
     code_folding: hide
-    number_sections: yes
+    number_sections: no
     toc: yes
     toc_depth: 5
     toc_float:
@@ -31,10 +31,10 @@ output:
 
 hr {
     display: block;
-    height: 00px;
+    height: 400px;
     border: 0;
     border-top: 0px solid darkgreen;
-    border-bottom: 3px solid darkgreen;
+    border-bottom: 0px solid darkgreen;
     margin: 1em 0;
     padding-bottom: 0px;
     padding-top: 0px;
@@ -134,14 +134,11 @@ h5 {
 
 
 ```{r setup, include=TRUE, cache=FALSE, echo=FALSE, message=FALSE, eval=TRUE}
-
 library(mgcv)
-
 knitr::opts_chunk$set(echo = TRUE, cache=TRUE, comment="##", message = FALSE, warning = FALSE, tidy = TRUE, eval=TRUE, out.width = "70%", collapse=TRUE, fig.align="center")
-
 ```
 
-
+<hr>
 
 # Motivation
 
@@ -154,11 +151,13 @@ GAMs are useful when the type of relations between a response variable and expla
 
 We will use the package [mgcv](https://people.maths.bris.ac.uk/~sw15190/mgcv/) developed by [Simon Wood](https://people.maths.bris.ac.uk/~sw15190/)
 
+<hr>
+
 # An Example
 
-Suppose we have the following (simulated) variables and we which to explain or predict variations in $y$ using *x*. The relation between *x* and *y* certainly can not be explained using a linear model.
+Suppose we have the following (simulated) variables and we which to explain or predict variations in **y** using **x**.
 
-First, let's simulate the data.
+First, let's simulate some data.
 ```{r}
 
 set.seed(123) # make the example reproducible
@@ -173,6 +172,8 @@ d<-data.frame(x,y) # build a data.frame
 
 ```
 
+<hr>
+
 Here is what the data looks like. The line is the true generating function.
 ```{r}
 
@@ -181,6 +182,8 @@ v<-seq(min(d$x),max(d$x),by=0.1)
 lines(v,f(v),col="grey60",lwd=2) 
 
 ```
+
+<hr>
 
 Obviously, a linear regression does not make sense as a model.
 ```{r}
@@ -193,12 +196,16 @@ lines(v,p,lwd=1)
 
 ```
 
-This is obvious when checking linear model assumptions.
+<hr>
+
+This is also obvious when checking linear model assumptions.
 ```{r}
 par(mfrow=c(2,2))
 plot(m)
 
 ```
+
+<hr>
 
 We could also decide to fit polynomial regressions
 ```{r}
@@ -222,26 +229,36 @@ legend("topleft",lwd=1,cex=2,col=2:4,legend=c(expression(x^2),expression(x^3),ex
 
 ```
 
-Now, let's use a GAM model with the `gam` function from package [**mgcv**](https://people.maths.bris.ac.uk/~sw15190/mgcv/) and a smooth over $x$ using the function `s`. 
+<hr>
+
+Now, let's use a GAM model with the `gam` function from package [**mgcv**](https://people.maths.bris.ac.uk/~sw15190/mgcv/) and a smooth over **x** using the function `s`. We can compare the fit of the GAM model to the data generating function. The fit is quite close to the true generating function.
+
 ```{r}
 library(mgcv)
 
-g<-gam(y~s(x,bs="cr"),data=d) # a gam
-```
-
-We can compare the fit of the GAM model to the data generating function. The fit is quite close to the true generating function.
-```{r}
+# plot the data and the true curve
 plot(y~x,data=d,xlab="x",ylab="y",col="grey60")
-lines(v,f(v),col="grey60",lwd=2) ## generating function (TRUE function)
+lines(v,f(v),col="grey60",lwd=2)
 
+# fit the gam model
+g<-gam(y~s(x),data=d)
+
+# add the line
 p<-predict(g,data.frame(x=v))
 lines(v,p,col="black")
 ```
 
+<hr>
+
+## CHALLENGE 1
+
+Generate you own complex single variable function and try to describe it using `gam` and the smooth function `s`. 
+
+<hr>
 
 # Under the Hood
 
-(but slightly...)
+(but just a bit...)
 
 ## Model formulation
 
@@ -253,6 +270,8 @@ $$y \sim \mathcal{N}(\mu, \sigma^2)$$
 
 $$\mu=\beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_n X_n$$
 
+<hr>
+
 **Generalized linear model**
 
 A generalized linear model is a linear combination of explanatory variables, but there is a *link* function $\mathcal{g}$ that relates the response to the linear predictor and the error follows a distribution from the exponential family.
@@ -260,6 +279,8 @@ A generalized linear model is a linear combination of explanatory variables, but
 $$y \sim \mathcal{ExpFam}(\mu, ...)$$
 
 $$\mathcal{g}(\mu)=\beta_0 + \beta_1 X_1 + \beta_2 X_2 + ... + \beta_n X_n$$
+
+<hr>
 
 **Generalized additive models**
 
@@ -277,11 +298,11 @@ where the $\beta_i$ are arbitrary functions. Thus, a GAM is a linear combination
 
 $$\mathcal{f} (X)=\beta_1 + \beta_2 X + \beta_3 X^2 + \beta_4 X^3$$
 
-
+<hr>
 
 ## GAM construction
 
-To have a better understanding of what a GAM may represent, let's decompose the data we studied in the example into sections and fit cubic polynomial to each.
+To have a slightly better understanding of what a GAM may represent, let's decompose the data we studied in the example into sections and fit cubic polynomial to each.
 
 ```{r}
 
@@ -303,33 +324,44 @@ invisible(lapply(l,function(i){
 
 ```
 
+<hr>
 
 We now have different pieces fitted to each section. But the pieces need to be smoothly connected together to form [splines](https://en.wikipedia.org/wiki/Spline_(mathematics)) which are piecewise polynomial curves. Without entering into details, these pieces are connected using constraints on first- and second-order derivatives to ensure smooth connections. These connections are made at **knots**. There are several ways to determine the number of knots and it may also depend on the type of splines used.
 
 Now, let's go back to back to our gam model.
 ```{r}
+# extract the bases
 mm <- predict(g, type = "lpmatrix")
+
+# plot them
 matplot(d$x,mm[,-1],type="l",ylab="Basis functions")
+
+# add a legend
 nn <- ncol(mm[,-1])
 legend("top",horiz=TRUE,colnames(mm[,-1]),cex=0.8,col=seq_len(nn),lty=seq_len(nn),inset=c(0,-0.1),xpd=TRUE,bty="n")
 ```
 
+<hr>
 
 ```{r}
 plot(y~x,data=d)
-lines(d$x,mm%*%g$coefficients)
+lines(d$x,mm%*%g$coefficients) # combine the linear predictor
 ```
 
 
 <!-- One might ask, why use piecewise polynomial instead of a high degree polynomial fitted to the whole data? High degree polynomials can lead to unwanted oscillations, notably at the edges of predictions. For example, see [Runge's phenomenon](https://en.wikipedia.org/wiki/Runge%27s_phenomenon).   -->
 
+<hr>
+
 # In Practice
 
 ## mgcv
 
-As taken from the package help pages, mgcv is a *Mixed GAM Computation Vehicle with GCV/AIC/REML smoothness estimation and GAMMs by REML/PQL*. The package name **mgcv** stands for **M**ixed **G**AM **C**omputation **V**ehicle.
+As taken from the package help pages, mgcv is a *Mixed GAM Computation Vehicle with GCV/AIC/REML smoothness estimation and GAMMs by REML/PQL*. 
 
-<br>
+The package name **mgcv** stands for **M**ixed **G**AM **C**omputation **V**ehicle.
+
+<hr>
 
 There are a lot of sources of information for using GAMs with mgcv. A list of useful links is given at the end of this document. 
 
@@ -345,8 +377,7 @@ Contrary to many packages, the help files for the mgcv package are extremely det
  
 `?mgcv.FAQ`  frequently asked questions concerning the package
 
-
-### GCV
+<hr>
 
 GCV stands for **G**eneralized **C**ross-**V**alidation. This is one of the procedure that determines the optimal amount of smoothing and it is done automatically by the mgcv algorithms. 
 
@@ -356,80 +387,167 @@ Thus, one important advantage of using gam and mgcv is that the optimal level of
 
 Other methods than GCV are now available. Type `?gam.selection` for more detailed information on the different methods possible.
 
-
+<hr>
 
 ## The `gam` function
 
+Standard non-smoothed variables can go in the `gam` formula. In this case, the ouput returned is similar to the `lm` output.
 ```{r}
-g1<-gam(y~x,data=d)
+g<-gam(y~x,data=d)
 summary(g)
-
 ```
 
+<hr>
+
+What does the summary output looks like with a smooth term?
 ```{r}
-g2<-gam(y~s(x),data=d)
+g<-gam(y~s(x),data=d)
 summary(g)
-plot(g,residuals=TRUE,pch=1)
 ```
 
+1. The first part deals with parametric coefficients (factors, non-smoothed variables)
 
+2. The second part deals with smoothed terms and report the **edf** which stands for **e**stimated **d**egrees of **f**reedom. 
 
+Without going into details, it roughly represents the level of smooth complexity required for modeling the response.
 
-Several methods (functions) are available to deal with gam objects: `print`, `summary`,`anova`, `plot`, `predict`, `residuals`. 
+3. The third part reports $R^2$-type measures and the generalized cross validation value.
 
-## Set up a model
+<hr>
 
-See `?family.mgcv` for explanations and the list of families available in mgcv.
+Several methods (functions) are available to deal with gam objects: 
+
+- `print` 
+- `summary`
+- `anova` 
+- `plot` 
+- `predict`
+- `residuals` 
+
+<hr>
 
 ## Smooths
 
-The list of available smooth terms is given in `?smooth.terms`
+<br>
 
 `s()`
 
-Used for univariate smooths, isotropic smooths of several variables (with variables on the same scale, e.g., XY coordinates), simple random effects
+`gam(y~s(x),data=d)`
+
+Used for univariate smooths, isotropic smooths of several numeric variables (with variables on the same scale, e.g., XY coordinates), interactions, simple random effects.
+
+<br><br>
 
 `te()`
 
-Tensor product smooths for several variables (interactions)
+`gam(y~te(x,z),data=d)`
+
+Tensor product smooths of several variables (interactions) e.g. 
+
+<br><br>
 
 `ti()`
 
+`gam(y~ti(x)+ti(z)+ti(x,z),data=d)`
+
 Tensor product smooths with marginal smooths excluded (and lower order interaction terms)
+
+<br><br>
+
+The list of available smooth terms is given in `?smooth.terms`
+
+<hr>
+
+## Set up a model
+
+All families available in GLMs are also available in GAMs and others are also available.
+
+`?family.mgcv`
+
+<hr>
+
+## CHALLENGE 2
+
+Download mean daily temperature data from a weather station in Québec city. Can you estimate the mean trend for the year 2015? To download the data, you will need to install the **rclimateca** package. The following code gives you the instructions to get the data.
+
+The `ec_climate_search_locations` function searches for weather stations near a location.
+```{r,eval=TRUE}
+library(rclimateca)
+
+ec_climate_search_locations("quebec", timeframe = "daily", year = 2015)
+
+```
+
+The `ec_climate_data` function downloads the data for the station for a given time frame. We turn this to a data.frame and add the julian date to the data 
+```{r,eval=TRUE}
+
+x<-"QUEBEC/JEAN LESAGE INTL QC 26892"
+
+d<-ec_climate_data(x, timeframe = "daily",start = "2015-01-01", end = "2015-12-31")
+
+d<-as.data.frame(d) # transform to a data.frame
+
+d$jul<-as.numeric(format(d$date,"%j")) # turn the date to a julian date
+
+d$temp<-d$mean_temp_c # choose a specific temperature (here the mean)
+
+```
+
+```{r,eval=TRUE,include=TRUE,echo=FALSE}
+g<-gam(temp~s(jul),data=d)
+```
+
+```{r,eval=FALSE,include=FALSE,echo=FALSE}
+
+plot(d$jul,d$temp)
+plot(g,residuals=TRUE,pch=1,shade=TRUE,rug=FALSE,shift=mean(d$temp))
+plot(temp~jul,data=d)
+v<-seq(1,365,by=0.1)
+p<-predict(g,data.frame(jul=v))
+lines(v,p)
+```
+
+
+<hr>
 
 ## Arguments
 
-Here is a list of some important arguments to the smooth function `s` or `te`
+Here is a list of some important arguments to the smooth function `s` or `te`.
 
-`bs`: For choosing the type basis
+`bs`: For choosing the basis type (`?smooth.terms`)
 
-`by`: For allowing the smooths to vary according to a categorical variable
+`by`: For allowing the smooths to vary according to a variable. It can be a numeric variable or a categorical variable. For the latter, the simple term usually also has to be added to the model (e.g. `y~treatment+s(x,by=treatment)`).
 
-`k`: The dimension of the basis used to construct the smooth term. See `?choose.k` for good advices
+`k`: The dimension of the basis used to construct the smooth term. See `?choose.k` for good advices. Higher values allow more complex relations.
 
-## Plotting
+<hr>
 
-`plot`
+## Bases
 
-`vis.gam`
+**Cubic regression spline** (*cr*)
 
-`plot.smooth`
+- Use regular knots
 
-`visreg`
+**Cyclic cubic regression spline** (*cc*) 
 
-`predict`
+- For cyclic (seasonal) response
+
+**Thin plate spline** (*tp*)
+
+- Does not use regular knots
+
+**Thin plate spline with shrinkage** (*ts*)
+
+- Can be used for variable selection
+
+**Cubic regression spline with shrinkage** (*cs*)
+
+- Can be used for variable selection
 
 
-## Interpretation
 
 
-
-### EDF
-
-EDF stands for **E**stimated **D**egrees of **F**reedom. Without going into details, it roughly represents the level of smooth complexity required for modeling the response.
-
-## Model checking
-
+<!-- ## Model checking -->
 
 ```{r,eval=FALSE,echo=FALSE}
 par(mfrow=c(2,2))
@@ -447,82 +565,104 @@ gam.check(g)
 
 
 
-**Cubis regression spline** (*cr*)
+<hr>
 
-- use knots
-- single variable
+## Plotting
 
-**Cyclic cubic regression spline** (*cc*) 
+Plotting is essential with GAMs because it is impossible to interpret coefficients to and have an idea of the effect of variables. There are several functions for producing gam plots. 
 
-- for cyclic (seasonal) response
+`plot`
 
-**Thin plate spline** (*tp*)
+```{r}
+plot(g,residuals=TRUE,pch=1,shade=TRUE)
+```
 
-- does not use regular knots
-- can be used for interactions
+<hr>
 
-**Thin plate spline with shrinkage** (*ts*)
+`vis.gam`
 
-- can be used for variable selection
+This function is for visualizing two variables with 3D or contour plots.
 
-**Cubic regression spline with shrinkage** (*cs*)
+<hr>
 
-- can be used for variable selection
+`visreg::visreg`
 
-**Tensor product** (*te*)
+[visreg](http://pbreheny.github.io/visreg/) is a very useful package for visualizing a lot of models (LM, GLM, randomForest, etc.) including GAMs
 
-- used for multiple interacting variables
+```{r}
 
+library(visreg)
+visreg(g,"jul")
 
-## Interactions
+```
 
+<hr>
 
-## ---Challenge1---
+`itsadug::plot.smooth`
 
-```{r, eval=FALSE, echo=FALSE}
+```{r}
 
-dat <- gamSim(5,n=200,dist="normal",scale=0.5, verbose=FALSE)
-g<-gam(y~s(x1,by=x0)+s(x2,by=x0)+s(x3,by=x0),data=dat)
+library(itsadug)
+plot_smooth(g,view="jul")
+```
 
-dat <- gamSim(5,n=200,dist="normal",scale=0.5, verbose=FALSE)
+<hr>
 
-par(mfrow=c(2,2))
-plot(y~x0+x1+x2+x3,data=dat)
+`predict`
 
-g<-gam(y~s(x1)+s(x2)+s(x3),data=dat)
-plot(g,residuals=TRUE,pch=1)
-summary(g)
+If you want to have full control over the plot you are producing, you can use predict to generate your values and then use your favorite plotting tools to construct your plot. 
+
+<hr>
+
+## Random Effects
+
+There are several ways to include random effects in GAMs
+
+1. Use `gam` and `bs="re"` for simple random effects.
+
+2. Use `gamm` and specify your random effects just like in `lme`. The function uses `lme` behing the scene.
+
+3. Use the package `gamm4` which relies on package lme4, but it is less developed.
+
+For more info on random effects with mgcv see `?random.effects` and the help page for `?gamm`
+
+<hr>
+
+## Temporal Autocorrelation
+
+Since `gamm` uses `lme` and the nlme package, all functionalities related to temporal autocorrelation are also available to `gamm` (`corAR1`, `corARMA`, etc.)
+
+See also the package [itsadug](https://cran.r-project.org/web/packages/itsadug/vignettes/inspect.html) which specializes on GAMs and time-series.
+
+<hr>
+
+## GAMLSS
+
+[GAMLSS](http://www.gamlss.com/) (Generalized Additive Models for **L**ocation, **S**cale and **S**hape ) are an extension to GAMS where all parameters of an assumed distribution for the response variable can be modeled as an additive model of the explanatory variables. This means for example that in addition to the modeling of the mean response, the variance can also be modeled. They also allow for the use of distributions beyond the exponential family.
+
+<hr>
+
+## CHALLENGE 3
+
+1. Compare the climate between two different towns in Canada in 2015 and illustrate their differences. You might need the `by` argument.
+
+```{r, eval=FALSE, echo=TRUE}
+
+ec_climate_search_locations(c("quebec","vancouver"), timeframe = "daily", year = 2015)
+
+x<-c("QUEBEC/JEAN LESAGE INTL QC 26892","VANCOUVER INTL A BC 51442")
+
+d<-as.data.frame(ec_climate_data(x, timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
+
+d$jul<-as.numeric(format(d$date,"%j"))
+d$temp<-d$mean_temp_c
+d$location<-as.factor(d$location)
 
 ```
 
 
-
 ```{r, eval=FALSE, echo=FALSE}
 
-library(rclimateca)
-
-ec_climate_search_locations("quebec", timeframe = "daily", year = 2015)
-
-d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892"), timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
-d$jul<-as.numeric(format(d$date,"%j"))
-d$temp<-d$mean_temp_c
-plot(d$jul,d$temp)
-
-g<-gam(temp~s(jul,bs="tp"),data=d)
-plot(g,residuals=TRUE,pch=1,shade=TRUE,rug=FALSE,shift=mean(d$temp))
-
-plot(temp~jul,data=d)
-v<-seq(1,365,by=0.1)
-p<-predict(g,data.frame(jul=v))
-lines(v,p)
-
-ec_climate_search_locations("halifax", timeframe = "daily", year = 2015)
-
-d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892","VANCOUVER INTL A BC 51442","TORONTO CITY ON 31688","HALIFAX INTL A NS 50620"), timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
-d$jul<-as.numeric(format(d$date,"%j"))
-d$temp<-d$mean_temp_c
-d$location<-as.factor(d$location)
-d<-d[!is.na(d$temp),]
 plot(d$jul,d$temp)
 
 g<-gam(temp~location+s(jul,by=location),data=d)
@@ -539,20 +679,22 @@ visreg(g,"jul","location",overlay=TRUE)
 
 ```
 
+<hr>
 
+2. Estimate the mean daily temperature yearly trend for the 2000-2015 period at the Québec station using a cyclical basis or seasonal basis (e.g. `"cc"`).
 ```{r, eval=FALSE, echo=FALSE}
 
 library(rclimateca)
 
 ec_climate_search_locations("quebec", timeframe = "daily", year = 2015)
 
-d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892"), timeframe = "daily",start = "2015-01-01", end = "2015-12-31"))
+d<-as.data.frame(ec_climate_data(c("QUEBEC/JEAN LESAGE INTL QC 26892"), timeframe = "daily",start = "2010-01-01", end = "2015-12-31"))
 d$jul<-as.numeric(format(d$date,"%j"))
 d$temp<-d$mean_temp_c
 plot(d$jul,d$temp)
-g<-gam(temp~s(year,k=3)+s(jul,bs="cc"),data=d)
-g<-gam(temp~s(jul),data=d)
-plot(g,residuals=FALSE,pch=1,shade=TRUE,scale=0)
+g<-gam(temp~s(jul,bs="cc"),data=d)
+
+plot(g,residuals=TRUE,pch=1,shade=TRUE)
 
 
 plot(temp~jul,data=d)
@@ -563,30 +705,50 @@ lines(v,p)
 ```
 
 
-```{r, eval=FALSE, echo=FALSE}
-l<-as.data.frame(ec_climate_geosearch_locations("quebec QC",year = 2017,timeframe = "daily",limit = 200,province=="QUEBEC"))
+<hr>
+
+3. Across the region of Québec city, explore the temperature for January 1, 2017 using the weather station coordinates.
+
+```{r, eval=TRUE, echo=TRUE, cache=TRUE}
+
+# search 200 locations aroun
+l<-as.data.frame(ec_climate_geosearch_locations("quebec QC",year = 2017,timeframe = "daily",limit = 200,province=="QUEBEC")) 
+
+# restrict locations kept
 l<-l[l$latitude<47.299 & l$longitude>(-76.269),]
-s<-l
-coordinates(s)<-~longitude+latitude
-plot(s)
 
-tmap_mode("view")
-tm_shape(s)+tm_dots(col="red")+tm_layout(basemaps = c("Esri.WorldImagery", "Esri.WorldShadedRelief", "Esri.NatGeoWorldMap"))
-
+# download data for each location
 d<-as.data.frame(ec_climate_data(l$location, timeframe = "daily",start = "2017-01-01", end = "2017-01-01"))
+
+# add latlon the the data
 m<-match(d$location,l$location)
 d$lon<-l$longitude[m]
 d$lat<-l$latitude[m]
-d$elev<-l$elevation_m[m]
+
+# convert to julian date
 d$jul<-as.numeric(format(d$date,"%j"))
 d$temp<-d$mean_temp_c
-d$year<-as.factor(d$year)
-#d<-na.omit(d[,c("jul","temp","year")])
-plot(d$jul,d$temp)
-g<-gam(temp~s(elev)+te(lon,lat),data=d)
-#plot(g,residuals=TRUE,pch=1)
+```
+
+
+
+```{r, eval=FALSE, echo=FALSE}
+# turn locations to spatial object and plot them (optional)
+library(sp)
+library(tmap)
+s<-l
+coordinates(s)<-~longitude+latitude
+tmap_mode("view")
+tm_shape(s)+tm_dots(col="red")+tm_layout(basemaps = c("Esri.WorldImagery", "Esri.WorldShadedRelief", "Esri.NatGeoWorldMap"))
+
+```
+
+
+```{r, eval=FALSE, echo=FALSE}
+
+g<-gam(temp~te(lon,lat),data=d)
+
 plot(g,select=1, cex=3, asp=1, lwd=2, scheme=2,n2=100,too.far=-0.1,contour.col="black")
-	
 	
 visreg2d(g,"lon","lat")
 points(d$lon,d$lat)
@@ -596,34 +758,11 @@ points(d$lon,d$lat)
 	
 ```
 
+<br><br>
 
+Are there more questions you could answer with the weather data using GAMs?
 
-
-# Comparing models
-
-# Extensions
-
-## Random Effects
-
-For more info on random effects with mgcv see `?random.effects` and the help page for `?gamm`
-
-## Temporal Autocorrelation
-
-See [itsadug](https://cran.r-project.org/web/packages/itsadug/vignettes/inspect.html)
-
-## Spatial Autocorrelation
-
-Spatial models can be also be formulated for discrete spatial structures through *Markov Random Field* smooths. For continuous spatial data, coordinates can also be used within predictors.
-
-## Models for large data
-
-bam instead of gam
-
-## GAMLSS
-
-[GAMLSS](http://www.gamlss.com/) (Generalized Additive Models for **L**ocation, **S**cale and **S**hape ) are an extension to GAMS where all parameters of an assumed distribution for the response variable can be modeled as an additive model of the explanatory variables. This means for example that in addition to the modeling of the mean response, the variance can also be modeled. They also allow for the use of distributions beyond the exponentail family.
-
-# ---Challenge 2---
+<hr>
 
 # Links
 
@@ -631,7 +770,7 @@ bam instead of gam
 
 [Generalized Additive Models, An Introduction with R](https://www.crcpress.com/Generalized-Additive-Models-An-Introduction-with-R-Second-Edition/Wood/p/book/9781498728331) by [Simon Wood](https://people.maths.bris.ac.uk/~sw15190/), author of the mgcv package
 
-## Course
+## Courses
 
 [mgcv course](http://converged.yt/mgcv-workshop/)
 
